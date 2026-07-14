@@ -15,6 +15,11 @@ app.use(cors({
 }))
 app.use(express.json())
 
+
+app.get("/", (req, res) => {
+    res.send("Backend Running");
+});
+
 app.post("/user-register", async (req, res) => {
     try {
         const { full_Name, user_mobile, username, password } = req.body;
