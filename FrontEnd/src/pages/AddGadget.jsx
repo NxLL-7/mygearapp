@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import Toast from "../components/Toast";
 import "./AddGadget.css";
 import "./Login.css";
-import "../Toast.css";
 
 export default function AddGadget() {
   const [step, setStep] = useState(1);
   const [showNotification, setShowNotification] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showError, setShowError] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const abortRef = useRef(null);
   const [gadgets, setGadgets] = useState([
     {
       name: "",
@@ -16,6 +19,12 @@ export default function AddGadget() {
       description: "",
     },
   ]);
+
+  useEffect(() => {
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, []);
 
   // Update gadget name
   const handleNameChange = (index, value) => {
@@ -49,7 +58,8 @@ export default function AddGadget() {
 
     if (validGadgets.length === 0) {
       setErrorMessage("Please add at least one gadget name.");
-      setTimeout(() => setErrorMessage(""), 2500);
+      setShowError(true);
+      setTimeout(() => setShowError(false), 2500);
       return;
     }
 
@@ -80,11 +90,18 @@ export default function AddGadget() {
     );
     if (hasEmptyFields) {
       setErrorMessage("Please fill out all product names and descriptions.");
-      setTimeout(() => setErrorMessage(""), 2500);
+      setShowError(true);
+      setTimeout(() => setShowError(false), 2500);
       return;
     }
 
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setIsSubmitting(true);
     window.dispatchEvent(new Event('start-loading'));
+
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${import.meta.env.VITE_API_URL}/add-gadgets`,
@@ -94,49 +111,41 @@ export default function AddGadget() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`
           },
-          body: JSON.stringify({ gadgetData: gadgets })
-        })
+          body: JSON.stringify({ gadgetData: gadgets }),
+          signal: controller.signal,
+        });
 
-      const result = await res.json()
+      const result = await res.json();
+      if (controller.signal.aborted) return;
+
       if (res.ok) {
-
         setShowNotification(true);
         setTimeout(() => {
           setShowNotification(false);
           navigate("/about", { state: { gadgets } });
         }, 1500);
-
       } else {
         setErrorMessage(result.message || "Failed to add gadgets");
-        setTimeout(() => setErrorMessage(""), 3000);
+        setShowError(true);
+        setTimeout(() => setShowError(false), 3000);
       }
     } catch (err) {
-      console.log(err);
+      if (err.name === "AbortError") return;
+      setErrorMessage("A network error occurred. Please try again.");
+      setShowError(true);
+      setTimeout(() => setShowError(false), 3000);
     } finally {
-      window.dispatchEvent(new Event('stop-loading'));
+      if (!controller.signal.aborted) {
+        setIsSubmitting(false);
+        window.dispatchEvent(new Event('stop-loading'));
+      }
     }
   };
 
   return (
     <div className="page-container">
-      {showNotification && (
-        <div className="toast-notification">
-          <span className="toast-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </span>
-          <span className="toast-text">Data saved successfully!</span>
-        </div>
-      )}
-      {errorMessage && (
-        <div className="toast-notification error">
-          <span className="toast-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          </span>
-          <span className="toast-text">
-            {errorMessage}
-          </span>
-        </div>
-      )}
+      <Toast type="success" message="Data saved successfully!" visible={showNotification} />
+      <Toast type="error" message={errorMessage} visible={showError} />
 
       <div
         className={`container flex-col add-container ${step === 1 ? "align-center" : "align-stretch"}`}
@@ -233,6 +242,7 @@ export default function AddGadget() {
                       value={gadget.product_name}
                       onChange={(e) => handleProductChange(index, e.target.value)}
                       style={{ marginBottom: 'var(--space-4)' }}
+                      disabled={isSubmitting}
                     />
                     <label className="auth-label">Description</label>
                     <textarea
@@ -243,6 +253,7 @@ export default function AddGadget() {
                       onChange={(e) =>
                         handleDescriptionChange(index, e.target.value)
                       }
+                      disabled={isSubmitting}
                     />
                   </div>
                 </div>
@@ -251,13 +262,25 @@ export default function AddGadget() {
                 <button
                   className="glass-button secondary"
                   onClick={() => setStep(1)}
+                  disabled={isSubmitting}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
                   Back
                 </button>
-                <button className="glass-button" onClick={handleSave}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  Save All
+                <button
+                  className="glass-button"
+                  onClick={handleSave}
+                  disabled={isSubmitting}
+                  aria-busy={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    "Saving..."
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      Save All
+                    </>
+                  )}
                 </button>
               </div>
             </div>

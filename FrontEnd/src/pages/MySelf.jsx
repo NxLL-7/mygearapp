@@ -1,42 +1,42 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import SkeletonCard from "../components/SkeletonCard";
 import "./MySelf.css";
 import "./About.css";
 
 export default function MySelf() {
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
   const [gadgets, setGadgets] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [profile, setProfile] = useState({
     username: "",
     fullName: "",
-    mobile: "",
-    password: "",
   });
-
   const [selectedGadget, setSelectedGadget] = useState(null);
+  const abortRef = useRef(null);
 
   useEffect(() => {
     const storedUsername = localStorage.getItem("username");
     if (!storedUsername) {
       navigate("/login");
     } else {
-      setProfile((prev) => ({
-        ...prev,
+      setProfile({
         username: storedUsername,
         fullName: localStorage.getItem("fullName") || "",
-        mobile: localStorage.getItem("mobile") || "",
-        password: localStorage.getItem("password") || "",
-      }));
+      });
     }
   }, [navigate]);
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
+  const fetchUserData = useCallback(async () => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-  const fetchUserData = async () => {
+    setIsLoading(true);
+    setError(null);
     window.dispatchEvent(new Event("start-loading"));
+
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${import.meta.env.VITE_API_URL}/favorite-gadget-only`, {
@@ -44,33 +44,32 @@ export default function MySelf() {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal: controller.signal,
       });
       const result = await res.json();
+      if (controller.signal.aborted) return;
       if (res.ok) {
         setGadgets(result);
       } else {
-        console.log(res.message);
+        setError(result?.message || "Failed to load favorites.");
       }
     } catch (err) {
-      console.log(err);
+      if (err.name === "AbortError") return;
+      setError("A network error occurred. Please check your connection.");
     } finally {
-      window.dispatchEvent(new Event("stop-loading"));
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+        window.dispatchEvent(new Event("stop-loading"));
+      }
     }
-  };
+  }, []);
 
-  const handleChange = (e) => {
-    setProfile({ ...profile, [e.target.name]: e.target.value });
-  };
-
-  const handleSave = () => {
-    localStorage.setItem("username", profile.username);
-    localStorage.setItem("fullName", profile.fullName);
-    localStorage.setItem("mobile", profile.mobile);
-    localStorage.setItem("password", profile.password);
-
-    window.dispatchEvent(new Event("authChange"));
-    setIsEditing(false);
-  };
+  useEffect(() => {
+    fetchUserData();
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, [fetchUserData]);
 
   return (
     <div className="page-container">
@@ -106,7 +105,18 @@ export default function MySelf() {
               </h2>
             </div>
 
-            {gadgets.length === 0 ? (
+            {isLoading ? (
+              <div className="gadgets-grid myself-fav-grid">
+                <SkeletonCard count={4} />
+              </div>
+            ) : error ? (
+              <div className="myself-empty-state">
+                <h3 className="myself-empty-title">{error}</h3>
+                <button onClick={fetchUserData} className="glass-button myself-empty-cta">
+                  Try Again
+                </button>
+              </div>
+            ) : gadgets.length === 0 ? (
               <div className="myself-empty-state">
                 <div className="myself-empty-icon-wrapper" aria-hidden="true">
                   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>

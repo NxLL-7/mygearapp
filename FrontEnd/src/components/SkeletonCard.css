@@ -1,0 +1,52 @@
+/* ── Skeleton Card Loader ───────────────────────────────────────────────────── */
+
+.skeleton-card {
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  background: var(--glass-card);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  animation: fadeIn var(--duration-slow) var(--ease-out) both;
+}
+
+.skeleton-badge {
+  width: 140px;
+  height: 28px;
+  border-radius: var(--radius-full);
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-line-full {
+  width: 100%;
+}
+
+.skeleton-line-short {
+  width: 65%;
+}
+
+/* Shimmer Animation */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.03) 80%
+  );
+  background-size: 300% 100%;
+  animation: skeletonShimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}

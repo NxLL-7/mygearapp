@@ -33,7 +33,6 @@ export default function Landing() {
           <div className="landing-cta-group">
             <Link to={user ? "/about" : "/register"} className="glass-button landing-cta-primary">
               {user ? "Go To Your Dashboard" : "Register Now !!"}
-              {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> */}
             </Link>
             {!user && (
               <Link to="/login" className="glass-button secondary landing-cta-secondary">

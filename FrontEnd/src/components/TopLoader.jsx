@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import './TopLoader.css';
 
@@ -7,8 +7,9 @@ export default function TopLoader() {
   const [visible, setVisible] = useState(false);
   const location = useLocation();
   const intervalRef = useRef(null);
+  const timeoutRef = useRef(null);
 
-  const startLoading = () => {
+  const startLoading = useCallback(() => {
     setVisible(true);
     setProgress(10);
     clearInterval(intervalRef.current);
@@ -21,16 +22,16 @@ export default function TopLoader() {
         return p + Math.random() * 15;
       });
     }, 300);
-  };
+  }, []);
 
-  const stopLoading = () => {
+  const stopLoading = useCallback(() => {
     clearInterval(intervalRef.current);
     setProgress(100);
-    setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       setVisible(false);
-      setTimeout(() => setProgress(0), 200); // reset after fade out
+      timeoutRef.current = setTimeout(() => setProgress(0), 200);
     }, 400);
-  };
+  }, []);
 
   // Route change loading
   useEffect(() => {
@@ -39,7 +40,7 @@ export default function TopLoader() {
       stopLoading();
     }, 300);
     return () => clearTimeout(timer);
-  }, [location.pathname]);
+  }, [location.pathname, startLoading, stopLoading]);
 
   // Global event listener
   useEffect(() => {
@@ -49,15 +50,16 @@ export default function TopLoader() {
       window.removeEventListener('start-loading', startLoading);
       window.removeEventListener('stop-loading', stopLoading);
       clearInterval(intervalRef.current);
+      clearTimeout(timeoutRef.current);
     };
-  }, []);
+  }, [startLoading, stopLoading]);
 
   return (
     <div className="top-loader-container" style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.3s ease' }}>
       <div 
         className="top-loader-bar" 
         style={{ width: `${progress}%` }}
-      ></div>
+      />
     </div>
   );
 }

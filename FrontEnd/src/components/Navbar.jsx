@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -21,13 +21,14 @@ export default function Navbar() {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('username');
+    localStorage.removeItem('token');
     window.dispatchEvent(new Event('authChange'));
     navigate('/login');
-  };
+  }, [navigate]);
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = useCallback((path) => location.pathname === path, [location.pathname]);
 
   return (
     <nav className="navbar" role="navigation" aria-label="Main navigation">

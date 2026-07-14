@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate, Link, data } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import Toast from "../components/Toast";
 import "./Login.css";
-import "../Toast.css";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -10,6 +10,7 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -25,6 +26,8 @@ export default function Login() {
       setTimeout(() => setShowError(false), 3000);
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/user-login`, {
@@ -52,10 +55,12 @@ export default function Login() {
         setShowError(true);
         setTimeout(() => setShowError(false), 3000);
       }
-    } catch (err) {
+    } catch {
       setErrorMessage("A network error has occurred. Please try again.");
       setShowError(true);
       setTimeout(() => setShowError(false), 3000);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -67,22 +72,8 @@ export default function Login() {
         <div className="auth-orb auth-orb-2" />
       </div>
 
-      {showSuccess && (
-        <div className="toast-notification">
-          <span className="toast-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </span>
-          <span className="toast-text">{successMessage}</span>
-        </div>
-      )}
-      {showError && (
-        <div className="toast-notification error">
-          <span className="toast-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          </span>
-          <span className="toast-text">{errorMessage}</span>
-        </div>
-      )}
+      <Toast type="success" message={successMessage} visible={showSuccess} />
+      <Toast type="error" message={errorMessage} visible={showError} />
 
       <div className="glass-panel login-panel">
         <div className="auth-header">
@@ -114,6 +105,8 @@ export default function Login() {
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -129,13 +122,22 @@ export default function Login() {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                disabled={isSubmitting}
               />
             </div>
           </div>
 
-          <button type="submit" className="glass-button auth-submit-btn">
-            Sign In
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          <button
+            type="submit"
+            className="glass-button auth-submit-btn"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+          >
+            {isSubmitting ? "Signing in..." : "Sign In"}
+            {!isSubmitting && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            )}
           </button>
         </form>
 

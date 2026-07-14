@@ -1,18 +1,25 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import "./About.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import SkeletonCard from "../components/SkeletonCard";
 
 export default function About() {
   const [gadgets, setGadgets] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDetailGadget, setSelectedDetailGadget] = useState(null);
+  const abortRef = useRef(null);
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
+  const fetchUserData = useCallback(async () => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-  const fetchUserData = async () => {
+    setIsLoading(true);
+    setError(null);
     window.dispatchEvent(new Event("start-loading"));
+
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${import.meta.env.VITE_API_URL}/get-gadgets`, {
@@ -20,19 +27,32 @@ export default function About() {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal: controller.signal,
       });
       const result = await res.json();
+      if (controller.signal.aborted) return;
       if (res.ok) {
         setGadgets(result);
       } else {
-        console.log(res.message);
+        setError(result?.message || "Failed to load gadgets.");
       }
     } catch (err) {
-      console.log(err);
+      if (err.name === "AbortError") return;
+      setError("A network error occurred. Please check your connection.");
     } finally {
-      window.dispatchEvent(new Event("stop-loading"));
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+        window.dispatchEvent(new Event("stop-loading"));
+      }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchUserData();
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, [fetchUserData]);
 
   return (
     <div className="page-container">
@@ -69,7 +89,18 @@ export default function About() {
         </div>
 
         <div className="glass-panel about-panel">
-          {gadgets.length === 0 ? (
+          {isLoading ? (
+            <div className="gadgets-grid about-grid">
+              <SkeletonCard count={6} />
+            </div>
+          ) : error ? (
+            <div className="about-empty-state">
+              <h3 className="about-empty-title">{error}</h3>
+              <button onClick={fetchUserData} className="glass-button about-empty-cta">
+                Try Again
+              </button>
+            </div>
+          ) : gadgets.length === 0 ? (
             <div className="about-empty-state">
               <div className="about-empty-icon-wrapper" aria-hidden="true">
                 <svg
@@ -130,14 +161,7 @@ export default function About() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         >
-                          <rect
-                            x="2"
-                            y="7"
-                            width="20"
-                            height="14"
-                            rx="2"
-                            ry="2"
-                          />
+                          <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                         </svg>
                         <span className="about-badge-text">

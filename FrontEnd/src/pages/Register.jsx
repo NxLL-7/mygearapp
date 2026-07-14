@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import Toast from "../components/Toast";
 import "./Register.css";
 import "./Login.css";
-import "../Toast.css";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -16,10 +16,11 @@ export default function Register() {
   const [errorMessage, setErrorMessage] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  }; 
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,6 +37,8 @@ export default function Register() {
       setTimeout(() => setShowError(false), 3000);
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/user-register`, {
@@ -60,10 +63,12 @@ export default function Register() {
         setShowError(true);
         setTimeout(() => setShowError(false), 3000);
       }
-    } catch (err) {
+    } catch {
       setErrorMessage("A network error has occurred. Please try again.");
       setShowError(true);
       setTimeout(() => setShowError(false), 3000);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -75,22 +80,8 @@ export default function Register() {
         <div className="auth-orb auth-orb-2" />
       </div>
 
-      {showSuccess && (
-        <div className="toast-notification">
-          <span className="toast-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </span>
-          <span className="toast-text">{successMessage}</span>
-        </div>
-      )}
-      {showError && (
-        <div className="toast-notification error">
-          <span className="toast-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          </span>
-          <span className="toast-text">{errorMessage}</span>
-        </div>
-      )}
+      <Toast type="success" message={successMessage} visible={showSuccess} />
+      <Toast type="error" message={errorMessage} visible={showError} />
 
       <div className="glass-panel register-panel">
         <div className="auth-header">
@@ -121,7 +112,10 @@ export default function Register() {
                 name="full_Name"
                 className="glass-input auth-input"
                 placeholder="Enter your full name"
+                value={formData.full_Name}
                 onChange={handleChange}
+                autoComplete="name"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -136,7 +130,10 @@ export default function Register() {
                 name="user_mobile"
                 className="glass-input auth-input"
                 placeholder="Enter your phone number"
+                value={formData.user_mobile}
                 onChange={handleChange}
+                autoComplete="tel"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -151,7 +148,10 @@ export default function Register() {
                 name="username"
                 className="glass-input auth-input"
                 placeholder="Choose a username"
+                value={formData.username}
                 onChange={handleChange}
+                autoComplete="username"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -166,14 +166,24 @@ export default function Register() {
                 name="password"
                 className="glass-input auth-input"
                 placeholder="Create a secure password"
+                value={formData.password}
                 onChange={handleChange}
+                autoComplete="new-password"
+                disabled={isSubmitting}
               />
             </div>
           </div>
 
-          <button type="submit" className="glass-button auth-submit-btn">
-            Create Account
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          <button
+            type="submit"
+            className="glass-button auth-submit-btn"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+          >
+            {isSubmitting ? "Creating account..." : "Create Account"}
+            {!isSubmitting && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            )}
           </button>
         </form>
 

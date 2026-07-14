@@ -11,7 +11,10 @@ const PORT = process.env.PORT
 
 const allowedOrigins = process.env.NODE_ENV === "production"
     ? ["https://mygearapp.netlify.app"]
-    : ["http://localhost:5173"];
+    : [
+        "http://localhost:5173",
+        "http://localhost:5174"
+    ];
 
 app.use(cors({
     origin: allowedOrigins,
@@ -24,13 +27,35 @@ app.get("/", (req, res) => {
     res.send("Backend Running");
 });
 
-app.post("/user-register", async (req, res) => {
+const userVerify = async (req, res, next) => {
     try {
         const { full_Name, user_mobile, username, password } = req.body;
-        if (!full_Name || !user_mobile || !username || !password) {
+
+        if (!full_Name || full_Name.trim().length < 2) {
             return res.status(400).json({
                 success: false,
-                message: "All fields are required."
+                message: "Full name must be at least 2 characters."
+            });
+        }
+
+        if (!username || username.trim().length < 3) {
+            return res.status(400).json({
+                success: false,
+                message: "Username must be at least 3 characters."
+            });
+        }
+
+        if (!password || password.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 8 characters."
+            });
+        }
+
+        if (!/^\d{10}$/.test(user_mobile)) {
+            return res.status(400).json({
+                success: false,
+                message: "Mobile number must contain exactly 10 digits."
             });
         }
 
@@ -44,6 +69,31 @@ app.post("/user-register", async (req, res) => {
                 message: "Username already exists."
             });
         }
+        const existingMobile = await pool.query(
+            "SELECT user_id FROM users WHERE user_mobile = $1",
+            [user_mobile]
+        );
+
+        if (existingMobile.rows.length > 0) {
+            return res.status(409).json({
+                success: false,
+                message: "Mobile number already registered."
+            });
+        }
+
+        next();
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+app.post("/user-register", userVerify, async (req, res) => {
+    try {
+        const { full_Name, user_mobile, username, password } = req.body;
 
         const hashedPassword = await BC.hash(password, saltRounds);
 
@@ -123,10 +173,6 @@ app.post("/user-login", async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Internal Server Error",
-            user: {
-                id: user.id,
-                username: user.username
-            }
         });
     }
 });
@@ -135,10 +181,11 @@ app.post("/user-login", async (req, res) => {
 const tokenVerify = async (req, res, next) => {
     const reqToken = req.headers.authorization;
 
-    if (!reqToken) {
+    if (!reqToken || !reqToken.startsWith("Bearer ")) {
         return res.status(401).json({
-            message: "No Token Found"
-        })
+            success: false,
+            message: "Invalid authorization header."
+        });
     }
 
     const token = reqToken.split(" ")[1]

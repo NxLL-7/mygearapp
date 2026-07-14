@@ -1,21 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import Toast from "../components/Toast";
+import SkeletonCard from "../components/SkeletonCard";
 import "./DeleteGadget.css";
-import "../Toast.css";
 
 export default function DeleteGadget() {
   const [gadgets, setGadgets] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedGadgets, setSelectedGadgets] = useState([]);
   const [showNotification, setShowNotification] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const navigate = useNavigate();
+  const abortRef = useRef(null);
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
+  const fetchUserData = useCallback(async () => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-  const fetchUserData = async () => {
+    setIsLoading(true);
+    setError(null);
     window.dispatchEvent(new Event('start-loading'));
+
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${import.meta.env.VITE_API_URL}/get-gadgets`, {
@@ -23,19 +30,32 @@ export default function DeleteGadget() {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal: controller.signal,
       });
       const result = await res.json();
+      if (controller.signal.aborted) return;
       if (res.ok) {
         setGadgets(result);
       } else {
-        console.log(res.message);
+        setError(result?.message || "Failed to load gadgets.");
       }
     } catch (err) {
-      console.log(err);
+      if (err.name === "AbortError") return;
+      setError("A network error occurred. Please check your connection.");
     } finally {
-      window.dispatchEvent(new Event('stop-loading'));
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+        window.dispatchEvent(new Event('stop-loading'));
+      }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchUserData();
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, [fetchUserData]);
 
   const toggleSelect = (gadgetId) => {
     setSelectedGadgets((prev) => {
@@ -48,13 +68,11 @@ export default function DeleteGadget() {
   };
 
   const handleDelete = async () => {
-
     if (selectedGadgets.length === 0) return;
     setShowConfirm(false);
     window.dispatchEvent(new Event('start-loading'));
 
     try {
-
       const token = localStorage.getItem("token");
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/gadget-delete`,
@@ -70,33 +88,27 @@ export default function DeleteGadget() {
         }
       );
 
-      const result = await res.json();
+      await res.json();
       if (res.ok) {
-        console.log(result.message);
         setShowNotification(true);
         setTimeout(() => {
           setShowNotification(false);
           navigate("/about");
         }, 1500);
       } else {
-        console.log(result.message);
+        setError("Failed to delete items. Please try again.");
       }
-    } catch (error) {
-      console.log(error.message);
+    } catch {
+      setError("A network error occurred. Please try again.");
     } finally {
       window.dispatchEvent(new Event('stop-loading'));
     }
   };
+
   return (
     <div className="page-container">
-      {showNotification && (
-        <div className="toast-notification">
-          <span className="toast-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </span>
-          <span className="toast-text">Items deleted successfully!</span>
-        </div>
-      )}
+      <Toast type="success" message="Items deleted successfully!" visible={showNotification} />
+
       <div className="container flex-col delete-container">
         <div className="delete-header">
           <div className="delete-header-left">
@@ -110,7 +122,18 @@ export default function DeleteGadget() {
         </div>
 
         <div className="glass-panel delete-panel">
-          {gadgets.length === 0 ? (
+          {isLoading ? (
+            <div className="gadgets-grid delete-grid">
+              <SkeletonCard count={6} />
+            </div>
+          ) : error ? (
+            <div className="delete-empty-state">
+              <h3 className="delete-empty-title">{error}</h3>
+              <button onClick={fetchUserData} className="glass-button">
+                Try Again
+              </button>
+            </div>
+          ) : gadgets.length === 0 ? (
             <div className="delete-empty-state">
               <div className="delete-empty-icon-wrapper" aria-hidden="true">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -164,7 +187,7 @@ export default function DeleteGadget() {
             </div>
           )}
 
-          {gadgets.length > 0 && (
+          {gadgets.length > 0 && !isLoading && (
             <div className="delete-footer">
               <span className="delete-selected-count">
                 {selectedGadgets.length} selected
