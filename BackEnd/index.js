@@ -1,7 +1,7 @@
 require('dotenv').config()
 const express = require('express')
-const app = express()
 const cors = require('cors')
+const app = express()
 const BC = require('bcrypt')
 const saltRounds = 10
 const pool = require('./PG_config.js')
@@ -10,9 +10,12 @@ const PORT = process.env.PORT
 
 
 app.use(cors({
-    origin: ["http://localhost:5173", "https://mygearapp.netlify.app/"],
+    origin: [
+        "http://localhost:5173",
+        "https://mygearapp.netlify.app"
+    ],
     credentials: true
-}))
+}));
 app.use(express.json())
 
 
