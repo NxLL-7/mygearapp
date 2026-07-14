@@ -18,7 +18,7 @@ export default function DeleteGadget() {
     window.dispatchEvent(new Event('start-loading'));
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:3000/g-gadgets", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/get-gadgets`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -57,7 +57,7 @@ export default function DeleteGadget() {
 
       const token = localStorage.getItem("token");
       const res = await fetch(
-        "http://localhost:3000/g-delete",
+        `${import.meta.env.VITE_API_URL}/gadget-delete`,
         {
           method: "DELETE",
           headers: {

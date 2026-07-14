@@ -10,7 +10,7 @@ const PORT = process.env.PORT
 
 
 app.use(cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173", "https://mygearapp.netlify.app/"],
     credentials: true
 }))
 app.use(express.json())
@@ -196,7 +196,7 @@ app.post("/add-gadgets", tokenVerify, async (req, res) => {
     }
 });
 
-app.get("/g-gadgets", tokenVerify, async (req, res) => {
+app.get("/get-gadgets", tokenVerify, async (req, res) => {
     try {
         const userID = req.user.id
         const userData = await pool.query(`SELECT gadget_id, gadget_name, gadget_description, gadget_product_name, is_favorite FROM gadgets WHERE user_id = $1 ORDER BY gadget_id`, [userID])
@@ -214,7 +214,7 @@ app.get("/g-gadgets", tokenVerify, async (req, res) => {
 
 });
 
-app.delete("/g-delete", tokenVerify, async (req, res) => {
+app.delete("/gadget-delete", tokenVerify, async (req, res) => {
 
     try {
 
@@ -256,7 +256,7 @@ app.delete("/g-delete", tokenVerify, async (req, res) => {
     }
 });
 
-app.patch("/g-favorite-u", tokenVerify, async (req, res) => {
+app.patch("/favorite-gadget-update", tokenVerify, async (req, res) => {
     try {
 
         const userID = req.user.id;
@@ -300,7 +300,7 @@ app.patch("/g-favorite-u", tokenVerify, async (req, res) => {
     }
 })
 
-app.get("/g-favorite-only", tokenVerify, async (req, res) => {
+app.get("/favorite-gadget-only", tokenVerify, async (req, res) => {
 
     try {
         const userID = req.user.id
@@ -330,20 +330,20 @@ app.get("/g-favorite-only", tokenVerify, async (req, res) => {
     }
 })
 
-app.get("/test-db", async (req, res) => {
-    try {
-        const result = await pool.query("SELECT NOW()");
-        res.json({
-            success: true,
-            time: result.rows[0].now
-        });
-    } catch (err) {
-        res.status(500).json({
-            success: false,
-            error: err.message
-        });
-    }
-});
+// app.get("/test-db", async (req, res) => {
+//     try {
+//         const result = await pool.query("SELECT NOW()");
+//         res.json({
+//             success: true,
+//             time: result.rows[0].now
+//         });
+//     } catch (err) {
+//         res.status(500).json({
+//             success: false,
+//             error: err.message
+//         });
+//     }
+// });
 
 app.listen(PORT, () => {
     console.log("SERVER UP !!", PORT)

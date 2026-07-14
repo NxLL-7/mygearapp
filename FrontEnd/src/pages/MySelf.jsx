@@ -39,7 +39,7 @@ export default function MySelf() {
     window.dispatchEvent(new Event("start-loading"));
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:3000/g-favorite-only", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/favorite-gadget-only`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

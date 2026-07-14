@@ -87,7 +87,7 @@ export default function AddGadget() {
     window.dispatchEvent(new Event('start-loading'));
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:3000/add-gadgets",
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/add-gadgets`,
         {
           method: "POST",
           headers: {
