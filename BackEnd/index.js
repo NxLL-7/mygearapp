@@ -62,7 +62,7 @@ app.post("/user-register", async (req, res) => {
         console.error("Registration Error:", err);
         return res.status(500).json({
             success: false,
-            message: "Internal Server Error"
+            error: err.message
         });
     }
 });
