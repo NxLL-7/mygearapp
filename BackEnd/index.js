@@ -330,6 +330,20 @@ app.get("/g-favorite-only", tokenVerify, async (req, res) => {
     }
 })
 
+app.get("/test-db", async (req, res) => {
+    try {
+        const result = await pool.query("SELECT NOW()");
+        res.json({
+            success: true,
+            time: result.rows[0].now
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+});
 
 app.listen(PORT, () => {
     console.log("SERVER UP !!", PORT)
