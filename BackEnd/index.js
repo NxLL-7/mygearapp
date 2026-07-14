@@ -9,11 +9,12 @@ const JWT = require('jsonwebtoken')
 const PORT = process.env.PORT
 
 
+const allowedOrigins = process.env.NODE_ENV === "production"
+    ? ["https://mygearapp.netlify.app"]
+    : ["http://localhost:5173"];
+
 app.use(cors({
-    origin: [
-        "http://localhost:5173",
-        "https://mygearapp.netlify.app"
-    ],
+    origin: allowedOrigins,
     credentials: true
 }));
 app.use(express.json())

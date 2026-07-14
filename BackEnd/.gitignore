@@ -1,0 +1,11 @@
+# Server
+PORT=3000
+
+# PostgreSQL (Neon)
+DATABASE_URL=postgresql://username:password@host/database?sslmode=require
+
+# JWT
+JWT_SECRET=your_jwt_secret_here
+
+# Environment
+NODE_ENV=development
