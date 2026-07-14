@@ -1,0 +1,32 @@
+/* Register-specific overrides (shared auth styles are in Login.css) */
+
+.register-panel {
+  width: 720px;
+  padding: var(--space-8) var(--space-10);
+  margin-top: var(--space-8);
+}
+
+.register-panel .auth-header {
+  margin-bottom: var(--space-6);
+}
+
+.register-panel .auth-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4) var(--space-6);
+}
+
+.register-panel .auth-submit-btn {
+  grid-column: 1 / -1;
+  margin-top: var(--space-2);
+}
+
+/* On very small screens, revert to stacked */
+@media screen and (max-width: 640px) {
+  .register-panel .auth-form {
+    grid-template-columns: 1fr;
+  }
+  .register-panel .auth-submit-btn {
+    grid-column: 1;
+  }
+}
